@@ -47,11 +47,12 @@ api.MapGet("/metadata/search", async (
     string? narrator,
     string? isbn,
     string? asin,
+    int? limit,
     IMetadataSearchService metadata,
     CancellationToken cancellationToken) =>
 {
     var results = await metadata.SearchAsync(
-        new MetadataSearchRequest(q, author, narrator, isbn, asin),
+        new MetadataSearchRequest(q, author, narrator, isbn, asin, limit ?? 50),
         cancellationToken);
 
     return Results.Ok(results);

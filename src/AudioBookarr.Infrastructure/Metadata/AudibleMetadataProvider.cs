@@ -25,7 +25,8 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
         }
 
         var responseGroups = "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series";
-        var url = $"1.0/catalog/products?keywords={Uri.EscapeDataString(keywords)}&num_results={request.Limit}&response_groups={responseGroups}&image_sizes=1215,900,500,558,252";
+        var audibleLimit = Math.Clamp(request.Limit, 1, 50);
+        var url = $"1.0/catalog/products?keywords={Uri.EscapeDataString(keywords)}&num_results={audibleLimit}&response_groups={responseGroups}&image_sizes=1215,900,500,558,252";
         var response = await httpClient.GetFromJsonAsync<AudibleSearchResponse>(url, cancellationToken);
 
         return response?.Products?

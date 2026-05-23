@@ -8,7 +8,7 @@ public sealed record MetadataSearchRequest(
     string? Narrator = null,
     string? Isbn = null,
     string? Asin = null,
-    int Limit = 10);
+    int Limit = 50);
 
 public sealed record MetadataFieldSource(
     string Field,
@@ -63,14 +63,16 @@ public sealed class MetadataSearchService(IEnumerable<IMetadataProvider> provide
             return [];
         }
 
-        var searches = _providers.Select(provider => SearchProviderAsync(provider, request, cancellationToken));
+        var normalizedRequest = request with { Limit = Math.Clamp(request.Limit, 1, 100) };
+        var searches = _providers.Select(provider => SearchProviderAsync(provider, normalizedRequest, cancellationToken));
         var providerResults = await Task.WhenAll(searches);
 
         return providerResults
             .SelectMany(results => results)
+            .DistinctBy(result => $"{result.Provider}:{result.ProviderId}")
             .OrderByDescending(result => result.Score)
             .ThenBy(result => _providers.FirstOrDefault(provider => provider.Name == result.Provider)?.Priority ?? int.MaxValue)
-            .Take(request.Limit)
+            .Take(normalizedRequest.Limit)
             .ToList();
     }
 

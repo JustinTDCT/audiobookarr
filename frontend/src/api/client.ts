@@ -101,8 +101,10 @@ export function getIntegrations() {
   return request<IntegrationState>('/api/v1/integrations');
 }
 
-export function searchMetadata(query: string) {
-  return request<MetadataSearchResult[]>(`/api/v1/metadata/search?q=${encodeURIComponent(query)}`);
+export function searchMetadata(query: string, limit = 50) {
+  return request<MetadataSearchResult[]>(
+    `/api/v1/metadata/search?q=${encodeURIComponent(query)}&limit=${limit}`
+  );
 }
 
 export function addBook(metadata: MetadataSearchResult, rootFolder?: string) {
