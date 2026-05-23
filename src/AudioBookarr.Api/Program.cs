@@ -80,6 +80,15 @@ api.MapPut("/library/books/{bookId}/monitor", async (
     return book is null ? Results.NotFound() : Results.Ok(book);
 });
 
+api.MapPost("/library/books/{bookId}/refresh-metadata", async (
+    string bookId,
+    ILibraryService library,
+    CancellationToken cancellationToken) =>
+{
+    var book = await library.RefreshMetadataAsync(bookId, cancellationToken);
+    return book is null ? Results.NotFound() : Results.Ok(book);
+});
+
 api.MapGet("/integrations", async (IIntegrationService integrations, CancellationToken cancellationToken) =>
     Results.Ok(await integrations.GetStateAsync(cancellationToken)));
 

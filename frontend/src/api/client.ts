@@ -125,3 +125,9 @@ export function setBookMonitoring(bookId: string, monitored: boolean) {
     body: JSON.stringify({ monitored })
   });
 }
+
+export function refreshBookMetadata(bookId: string) {
+  return request<Book>(`/api/v1/library/books/${encodeURIComponent(bookId)}/refresh-metadata`, {
+    method: 'POST'
+  });
+}

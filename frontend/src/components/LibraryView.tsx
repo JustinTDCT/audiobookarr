@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { setBookMonitoring, type Book, type LibraryState } from '../api/client';
+import { useEffect, useRef, useState } from 'react';
+import { refreshBookMetadata, setBookMonitoring, type Book, type LibraryState } from '../api/client';
 
 type LibraryViewProps = {
   library?: LibraryState;
@@ -8,6 +8,23 @@ type LibraryViewProps = {
 
 export function LibraryView({ library, onLibraryChanged }: LibraryViewProps) {
   const [selectedBook, setSelectedBook] = useState<Book>();
+  const [isRefreshingMetadata, setIsRefreshingMetadata] = useState(false);
+  const refreshAttempts = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!selectedBook || selectedBook.coverUrl || refreshAttempts.current.has(selectedBook.id)) {
+      return;
+    }
+
+    refreshAttempts.current.add(selectedBook.id);
+    setIsRefreshingMetadata(true);
+    refreshBookMetadata(selectedBook.id)
+      .then((updated) => {
+        setSelectedBook(updated);
+        onLibraryChanged();
+      })
+      .finally(() => setIsRefreshingMetadata(false));
+  }, [onLibraryChanged, selectedBook]);
 
   async function onToggleMonitoring(book: Book) {
     const updated = await setBookMonitoring(book.id, !book.monitored);
@@ -77,6 +94,7 @@ export function LibraryView({ library, onLibraryChanged }: LibraryViewProps) {
                 <span className="providerBadge">{selectedBook.metadataSource}</span>
                 <h2>{selectedBook.title}</h2>
                 {selectedBook.subtitle && <p className="subtitle">{selectedBook.subtitle}</p>}
+                {isRefreshingMetadata && <p className="subtitle">Refreshing metadata...</p>}
                 <div className="modalActions">
                   <button className="primaryButton" onClick={() => void onToggleMonitoring(selectedBook)} type="button">
                     {selectedBook.monitored ? 'Stop Monitoring' : 'Monitor'}

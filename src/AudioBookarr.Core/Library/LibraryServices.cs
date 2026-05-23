@@ -22,9 +22,13 @@ public interface ILibraryService
     Task<Book> AddBookAsync(AddBookRequest request, CancellationToken cancellationToken);
 
     Task<Book?> SetMonitoringAsync(string bookId, bool monitored, CancellationToken cancellationToken);
+
+    Task<Book?> RefreshMetadataAsync(string bookId, CancellationToken cancellationToken);
 }
 
-public sealed class LibraryService(ILibraryRepository repository) : ILibraryService
+public sealed class LibraryService(
+    ILibraryRepository repository,
+    IMetadataSearchService metadataSearchService) : ILibraryService
 {
     public Task<LibraryState> GetStateAsync(CancellationToken cancellationToken) =>
         repository.GetStateAsync(cancellationToken);
@@ -44,9 +48,17 @@ public sealed class LibraryService(ILibraryRepository repository) : ILibraryServ
         {
             var updated = existing with
             {
+                Subtitle = request.Metadata.Subtitle ?? existing.Subtitle,
+                Authors = request.Metadata.Authors.Count > 0 ? request.Metadata.Authors : existing.Authors,
+                Editions = request.Metadata.Editions.Count > 0 ? request.Metadata.Editions : existing.Editions,
+                Series = request.Metadata.Series.Count > 0 ? request.Metadata.Series : existing.Series,
+                Description = request.Metadata.Description ?? existing.Description,
+                CoverUrl = request.Metadata.CoverUrl ?? existing.CoverUrl,
+                Genres = request.Metadata.Genres.Count > 0 ? request.Metadata.Genres : existing.Genres,
                 Monitored = request.Monitored,
                 RootFolder = request.RootFolder ?? existing.RootFolder,
-                QualityProfile = request.QualityProfile
+                QualityProfile = request.QualityProfile,
+                MetadataSource = request.Metadata.Provider
             };
 
             ReplaceBook(state, updated);
@@ -89,6 +101,64 @@ public sealed class LibraryService(ILibraryRepository repository) : ILibraryServ
         ReplaceBook(state, updated);
         await repository.SaveStateAsync(state, cancellationToken);
         return updated;
+    }
+
+    public async Task<Book?> RefreshMetadataAsync(string bookId, CancellationToken cancellationToken)
+    {
+        var state = await repository.GetStateAsync(cancellationToken);
+        var existing = state.Books.FirstOrDefault(book => book.Id == bookId);
+
+        if (existing is null)
+        {
+            return null;
+        }
+
+        var edition = existing.Editions.FirstOrDefault();
+        var author = existing.Authors.FirstOrDefault()?.Name;
+        var results = await metadataSearchService.SearchAsync(
+            new MetadataSearchRequest(
+                existing.Title,
+                author,
+                Isbn: edition?.Isbn,
+                Asin: edition?.Asin,
+                Limit: 25),
+            cancellationToken);
+        var refreshed = FindBestMetadataMatch(existing, results);
+
+        if (refreshed is null)
+        {
+            return existing;
+        }
+
+        var updated = existing with
+        {
+            Subtitle = refreshed.Subtitle ?? existing.Subtitle,
+            Authors = refreshed.Authors.Count > 0 ? refreshed.Authors : existing.Authors,
+            Editions = refreshed.Editions.Count > 0 ? refreshed.Editions : existing.Editions,
+            Series = refreshed.Series.Count > 0 ? refreshed.Series : existing.Series,
+            Description = refreshed.Description ?? existing.Description,
+            CoverUrl = refreshed.CoverUrl ?? existing.CoverUrl,
+            Genres = refreshed.Genres.Count > 0 ? refreshed.Genres : existing.Genres,
+            MetadataSource = refreshed.Provider
+        };
+
+        ReplaceBook(state, updated);
+        await repository.SaveStateAsync(state, cancellationToken);
+        return updated;
+    }
+
+    private static MetadataSearchResult? FindBestMetadataMatch(
+        Book existing,
+        IReadOnlyList<MetadataSearchResult> results)
+    {
+        var edition = existing.Editions.FirstOrDefault();
+
+        return results.FirstOrDefault(result =>
+                result.Editions.Any(resultEdition =>
+                    (!string.IsNullOrWhiteSpace(edition?.Asin) && resultEdition.Asin == edition.Asin) ||
+                    (!string.IsNullOrWhiteSpace(edition?.Isbn) && resultEdition.Isbn == edition.Isbn))) ??
+            results.FirstOrDefault(result =>
+                string.Equals(result.Title, existing.Title, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void ReplaceBook(LibraryState state, Book updated)
