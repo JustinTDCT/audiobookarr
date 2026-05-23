@@ -28,6 +28,15 @@ public sealed record MetadataSearchResult(
     double Score,
     IReadOnlyList<MetadataFieldSource> FieldSources);
 
+public static class MetadataSearchLimits
+{
+    public const int Default = 50;
+
+    public const int All = 0;
+
+    public const int Maximum = 500;
+}
+
 public interface IMetadataProvider
 {
     string Name { get; }
@@ -63,7 +72,10 @@ public sealed class MetadataSearchService(IEnumerable<IMetadataProvider> provide
             return [];
         }
 
-        var normalizedRequest = request with { Limit = Math.Clamp(request.Limit, 1, 100) };
+        var normalizedLimit = request.Limit == MetadataSearchLimits.All
+            ? MetadataSearchLimits.Maximum
+            : Math.Clamp(request.Limit, 1, MetadataSearchLimits.Maximum);
+        var normalizedRequest = request with { Limit = normalizedLimit };
         var searches = _providers.Select(provider => SearchProviderAsync(provider, normalizedRequest, cancellationToken));
         var providerResults = await Task.WhenAll(searches);
 

@@ -24,15 +24,48 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
             return [];
         }
 
-        var responseGroups = "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series";
-        var audibleLimit = Math.Clamp(request.Limit, 1, 50);
-        var url = $"1.0/catalog/products?keywords={Uri.EscapeDataString(keywords)}&num_results={audibleLimit}&response_groups={responseGroups}&image_sizes=1215,900,500,558,252";
-        var response = await httpClient.GetFromJsonAsync<AudibleSearchResponse>(url, cancellationToken);
+        var products = await FetchProductsAsync(keywords, request.Limit, cancellationToken);
 
-        return response?.Products?
+        return products
             .Where(product => !string.IsNullOrWhiteSpace(product.Title))
             .Select(ToResult)
-            .ToList() ?? [];
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<AudibleProduct>> FetchProductsAsync(
+        string keywords,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        const int pageSize = 50;
+        var responseGroups = "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series";
+        var products = new List<AudibleProduct>();
+        var encodedKeywords = Uri.EscapeDataString(keywords);
+        var page = 0;
+        int? totalResults = null;
+
+        while (products.Count < limit)
+        {
+            var remaining = limit - products.Count;
+            var requestedPageSize = Math.Min(pageSize, remaining);
+            var url = $"1.0/catalog/products?keywords={encodedKeywords}&num_results={requestedPageSize}&page={page}&response_groups={responseGroups}&image_sizes=1215,900,500,558,252";
+            var response = await httpClient.GetFromJsonAsync<AudibleSearchResponse>(url, cancellationToken);
+            var pageProducts = response?.Products ?? [];
+
+            totalResults ??= response?.TotalResults;
+            products.AddRange(pageProducts);
+
+            if (pageProducts.Count == 0 ||
+                pageProducts.Count < requestedPageSize ||
+                (totalResults is not null && products.Count >= totalResults))
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return products;
     }
 
     private MetadataSearchResult ToResult(AudibleProduct product)
@@ -102,7 +135,8 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
     }
 
     private sealed record AudibleSearchResponse(
-        [property: JsonPropertyName("products")] List<AudibleProduct>? Products);
+        [property: JsonPropertyName("products")] List<AudibleProduct>? Products,
+        [property: JsonPropertyName("total_results")] int? TotalResults);
 
     private sealed record AudibleProduct(
         [property: JsonPropertyName("asin")] string? Asin,

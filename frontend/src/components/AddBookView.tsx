@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { addBook, searchMetadata, type LibraryState, type MetadataSearchResult } from '../api/client';
 
+type PageSize = 25 | 50 | 'all';
+
 type AddBookViewProps = {
   library?: LibraryState;
   onBookAdded: () => void;
@@ -12,6 +14,12 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string>();
   const [selectedResult, setSelectedResult] = useState<MetadataSearchResult>();
+  const [pageSize, setPageSize] = useState<PageSize>(25);
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(results.length / pageSize));
+  const visibleResults = pageSize === 'all'
+    ? results
+    : results.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   async function onSearch() {
     setIsSearching(true);
@@ -19,6 +27,7 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
 
     try {
       setResults(await searchMetadata(query));
+      setCurrentPage(1);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : 'Metadata search failed.');
     } finally {
@@ -63,8 +72,31 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
 
       {error && <div className="alert">{error}</div>}
 
+      {results.length > 0 && (
+        <div className="resultsToolbar">
+          <span>
+            Showing {pageSize === 'all' ? results.length : visibleResults.length} of {results.length} results
+          </span>
+          <label>
+            Results per page
+            <select
+              onChange={(event) => {
+                const value = event.target.value;
+                setPageSize(value === 'all' ? 'all' : Number(value) as 25 | 50);
+                setCurrentPage(1);
+              }}
+              value={pageSize}
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        </div>
+      )}
+
       <div className="resultGrid">
-        {results.map((result) => (
+        {visibleResults.map((result) => (
           <article
             className="resultCard"
             key={`${result.provider}-${result.providerId}`}
@@ -90,6 +122,30 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
           </article>
         ))}
       </div>
+
+      {results.length > 0 && pageSize !== 'all' && totalPages > 1 && (
+        <div className="paginationBar">
+          <button
+            className="secondaryButton"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className="secondaryButton"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {selectedResult && (
         <div className="modalBackdrop" onClick={() => setSelectedResult(undefined)}>

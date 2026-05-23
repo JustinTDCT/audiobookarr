@@ -13,7 +13,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -119,6 +120,11 @@ p {
   color: #e2e8f0;
 }
 
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .statGrid,
 .settingsGrid,
 .resultGrid {
@@ -195,6 +201,42 @@ p {
   border-radius: 8px;
   color: #ffffff;
   padding: 12px 14px;
+}
+
+.resultsToolbar,
+.paginationBar {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.resultsToolbar {
+  background: #172033;
+  border: 1px solid #293548;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.resultsToolbar span,
+.paginationBar span {
+  color: #94a3b8;
+}
+
+.resultsToolbar label {
+  align-items: center;
+  color: #cbd5e1;
+  display: flex;
+  gap: 10px;
+}
+
+.resultsToolbar select {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 8px 10px;
 }
 
 .resultGrid {
