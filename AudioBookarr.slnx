@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AudioBookarr.Api/AudioBookarr.Api.csproj" />
+    <Project Path="src/AudioBookarr.Core/AudioBookarr.Core.csproj" />
+    <Project Path="src/AudioBookarr.Infrastructure/AudioBookarr.Infrastructure.csproj" />
+  </Folder>
+</Solution>

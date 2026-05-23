@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "AudioBookarr.Api": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:8787",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AUDIOBOOKARR_CONFIG": "./config",
+        "AUDIOBOOKARR_AUDIOBOOKS": "./audiobooks",
+        "AUDIOBOOKARR_DOWNLOADS": "./downloads"
+      }
+    }
+  }
+}
