@@ -273,7 +273,8 @@ p {
   aspect-ratio: 2 / 3;
   background: #0f172a;
   border-radius: 8px;
-  object-fit: cover;
+  height: 138px;
+  object-fit: contain;
   width: 92px;
 }
 
@@ -411,8 +412,10 @@ p {
 
 .modalHero img {
   aspect-ratio: 2 / 3;
+  background: #0f172a;
   border-radius: 10px;
-  object-fit: cover;
+  height: 270px;
+  object-fit: contain;
   width: 180px;
 }
 
