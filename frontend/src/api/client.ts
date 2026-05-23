@@ -118,3 +118,10 @@ export function addBook(metadata: MetadataSearchResult, rootFolder?: string) {
     })
   });
 }
+
+export function setBookMonitoring(bookId: string, monitored: boolean) {
+  return request<Book>(`/api/v1/library/books/${encodeURIComponent(bookId)}/monitor`, {
+    method: 'PUT',
+    body: JSON.stringify({ monitored })
+  });
+}

@@ -96,31 +96,40 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
       )}
 
       <div className="resultGrid">
-        {visibleResults.map((result) => (
-          <article
-            className="resultCard"
-            key={`${result.provider}-${result.providerId}`}
-            onClick={() => setSelectedResult(result)}
-          >
-            {result.coverUrl ? <img alt="" src={result.coverUrl} /> : <div className="coverPlaceholder" />}
-            <div>
-              <span className="providerBadge">{result.provider}</span>
-              <h2>{result.title}</h2>
-              <p>{result.authors.map((author) => author.name).join(', ') || 'Unknown author'}</p>
-              <p>{result.editions[0]?.narrators?.join(', ') || 'Narrator unknown'}</p>
-              <button
-                className="secondaryButton"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void onAdd(result);
-                }}
-                type="button"
-              >
-                Add and Monitor
-              </button>
-            </div>
-          </article>
-        ))}
+        {visibleResults.map((result) => {
+          const existingBook = findExistingBook(result, library);
+
+          return (
+            <article
+              className={existingBook ? 'resultCard alreadyAdded' : 'resultCard'}
+              key={`${result.provider}-${result.providerId}`}
+              onClick={() => setSelectedResult(result)}
+            >
+              {result.coverUrl ? <img alt="" src={result.coverUrl} /> : <div className="coverPlaceholder" />}
+              <div>
+                <span className="providerBadge">{result.provider}</span>
+                {existingBook && <span className="statusBadge monitored inlineStatus">In Library</span>}
+                <h2>{result.title}</h2>
+                <p>{result.authors.map((author) => author.name).join(', ') || 'Unknown author'}</p>
+                <p>{result.editions[0]?.narrators?.join(', ') || 'Narrator unknown'}</p>
+                <button
+                  className="secondaryButton"
+                  disabled={Boolean(existingBook)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+
+                    if (!existingBook) {
+                      void onAdd(result);
+                    }
+                  }}
+                  type="button"
+                >
+                  {existingBook ? 'Already in Library' : 'Add and Monitor'}
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       {results.length > 0 && pageSize !== 'all' && totalPages > 1 && (
@@ -162,11 +171,19 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
               )}
               <div>
                 <span className="providerBadge">{selectedResult.provider}</span>
+                {findExistingBook(selectedResult, library) && (
+                  <span className="statusBadge monitored inlineStatus">In Library</span>
+                )}
                 <h2>{selectedResult.title}</h2>
                 {selectedResult.subtitle && <p className="subtitle">{selectedResult.subtitle}</p>}
                 <div className="modalActions">
-                  <button className="primaryButton" onClick={() => void onModalAdd(selectedResult)} type="button">
-                    Add and Monitor
+                  <button
+                    className="primaryButton"
+                    disabled={Boolean(findExistingBook(selectedResult, library))}
+                    onClick={() => void onModalAdd(selectedResult)}
+                    type="button"
+                  >
+                    {findExistingBook(selectedResult, library) ? 'Already in Library' : 'Add and Monitor'}
                   </button>
                   <button className="secondaryButton" onClick={() => setSelectedResult(undefined)} type="button">
                     Cancel
@@ -221,4 +238,23 @@ function formatDuration(minutes?: number) {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
   return `${hours}h ${remainder}m`;
+}
+
+function findExistingBook(result: MetadataSearchResult, library?: LibraryState) {
+  const edition = result.editions[0];
+  const normalizedTitle = normalize(result.title);
+
+  return library?.books.find((book) => {
+    const bookEdition = book.editions[0];
+
+    return Boolean(
+      (edition?.asin && bookEdition?.asin === edition.asin) ||
+      (edition?.isbn && bookEdition?.isbn === edition.isbn) ||
+      normalize(book.title) === normalizedTitle
+    );
+  });
+}
+
+function normalize(value?: string) {
+  return (value ?? '').trim().toLowerCase();
 }

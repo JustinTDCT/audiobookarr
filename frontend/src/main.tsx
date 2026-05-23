@@ -42,7 +42,7 @@ function App() {
   return (
     <AppShell activeView={activeView} onNavigate={setActiveView}>
       {activeView === 'dashboard' && <Dashboard integrations={integrations} library={library} status={status} />}
-      {activeView === 'library' && <LibraryView library={library} />}
+      {activeView === 'library' && <LibraryView library={library} onLibraryChanged={() => void refresh()} />}
       {activeView === 'add' && <AddBookView library={library} onBookAdded={() => void refresh()} />}
       {activeView === 'settings' && <SettingsView integrations={integrations} library={library} />}
       {activeView === 'system' && <SystemView status={status} />}
