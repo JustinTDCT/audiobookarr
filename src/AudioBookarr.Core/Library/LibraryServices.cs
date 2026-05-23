@@ -118,6 +118,7 @@ public sealed class LibraryService(
         var results = await metadataSearchService.SearchAsync(
             new MetadataSearchRequest(
                 existing.Title,
+                MetadataSearchField.Title,
                 author,
                 Isbn: edition?.Isbn,
                 Asin: edition?.Asin,

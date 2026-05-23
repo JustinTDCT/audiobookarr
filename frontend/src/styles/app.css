@@ -199,11 +199,12 @@ p {
 .searchPanel {
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 150px auto;
   margin-bottom: 18px;
 }
 
-.searchPanel input {
+.searchPanel input,
+.searchPanel select {
   background: #0f172a;
   border: 1px solid #334155;
   border-radius: 8px;

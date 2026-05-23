@@ -47,12 +47,16 @@ api.MapGet("/metadata/search", async (
     string? narrator,
     string? isbn,
     string? asin,
+    string? field,
     int? limit,
     IMetadataSearchService metadata,
     CancellationToken cancellationToken) =>
 {
+    var searchField = Enum.TryParse<MetadataSearchField>(field, true, out var parsedField)
+        ? parsedField
+        : MetadataSearchField.Author;
     var results = await metadata.SearchAsync(
-        new MetadataSearchRequest(q, author, narrator, isbn, asin, limit ?? MetadataSearchLimits.Default),
+        new MetadataSearchRequest(q, searchField, author, narrator, isbn, asin, limit ?? MetadataSearchLimits.Default),
         cancellationToken);
 
     return Results.Ok(results);

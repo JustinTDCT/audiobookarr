@@ -15,9 +15,7 @@ public sealed class OpenLibraryMetadataProvider(HttpClient httpClient) : IMetada
         MetadataSearchRequest request,
         CancellationToken cancellationToken)
     {
-        var query = !string.IsNullOrWhiteSpace(request.Isbn)
-            ? $"isbn:{request.Isbn}"
-            : string.Join(' ', new[] { request.Query, request.Author }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        var query = BuildQuery(request);
 
         var url = $"search.json?q={Uri.EscapeDataString(query)}&limit={request.Limit}&fields=key,title,subtitle,author_name,author_key,first_publish_year,cover_i,isbn,language,publisher,subject";
         var response = await httpClient.GetFromJsonAsync<OpenLibrarySearchResponse>(url, cancellationToken);
@@ -26,6 +24,22 @@ public sealed class OpenLibraryMetadataProvider(HttpClient httpClient) : IMetada
             .Where(doc => !string.IsNullOrWhiteSpace(doc.Title))
             .Select(doc => ToResult(doc))
             .ToList() ?? [];
+    }
+
+    private static string BuildQuery(MetadataSearchRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Isbn))
+        {
+            return $"isbn:{request.Isbn}";
+        }
+
+        return request.Field switch
+        {
+            MetadataSearchField.Author => $"author:{request.Query}",
+            MetadataSearchField.Title => $"title:{request.Query}",
+            MetadataSearchField.Series => request.Query,
+            _ => request.Query
+        };
     }
 
     private MetadataSearchResult ToResult(OpenLibraryDoc doc)

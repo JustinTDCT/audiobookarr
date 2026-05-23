@@ -30,6 +30,8 @@ export type MetadataSearchResult = {
   fieldSources: { field: string; provider: string }[];
 };
 
+export type MetadataSearchField = 'author' | 'title' | 'series';
+
 export type Book = MetadataSearchResult & {
   id: string;
   monitored: boolean;
@@ -101,9 +103,9 @@ export function getIntegrations() {
   return request<IntegrationState>('/api/v1/integrations');
 }
 
-export function searchMetadata(query: string, limit = 0) {
+export function searchMetadata(query: string, field: MetadataSearchField = 'author', limit = 0) {
   return request<MetadataSearchResult[]>(
-    `/api/v1/metadata/search?q=${encodeURIComponent(query)}&limit=${limit}`
+    `/api/v1/metadata/search?q=${encodeURIComponent(query)}&field=${field}&limit=${limit}`
   );
 }
 

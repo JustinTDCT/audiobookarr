@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
-import { addBook, searchMetadata, type LibraryState, type MetadataSearchResult } from '../api/client';
+import {
+  addBook,
+  searchMetadata,
+  type LibraryState,
+  type MetadataSearchField,
+  type MetadataSearchResult
+} from '../api/client';
 
 type PageSize = 25 | 50 | 'all';
 type SortOrder = 'title' | 'author' | 'source';
@@ -11,6 +17,7 @@ type AddBookViewProps = {
 
 export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
   const [query, setQuery] = useState('');
+  const [searchField, setSearchField] = useState<MetadataSearchField>('author');
   const [results, setResults] = useState<MetadataSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string>();
@@ -29,7 +36,7 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
     setError(undefined);
 
     try {
-      setResults(await searchMetadata(query));
+      setResults(await searchMetadata(query, searchField));
       setCurrentPage(1);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : 'Metadata search failed.');
@@ -65,9 +72,22 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
               void onSearch();
             }
           }}
-          placeholder="Search title, author, narrator, ISBN, or ASIN"
+          placeholder={`Search by ${searchField}`}
           value={query}
         />
+        <select
+          aria-label="Search field"
+          onChange={(event) => {
+            setSearchField(event.target.value as MetadataSearchField);
+            setResults([]);
+            setCurrentPage(1);
+          }}
+          value={searchField}
+        >
+          <option value="author">Author</option>
+          <option value="title">Title</option>
+          <option value="series">Series</option>
+        </select>
         <button className="primaryButton" disabled={isSearching || !query.trim()} onClick={onSearch} type="button">
           {isSearching ? 'Searching...' : 'Search'}
         </button>
