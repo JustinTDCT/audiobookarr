@@ -31,6 +31,11 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
     onBookAdded();
   }
 
+  async function onModalAdd(result: MetadataSearchResult) {
+    await onAdd(result);
+    setSelectedResult(undefined);
+  }
+
   return (
     <section>
       <div className="pageHeader">
@@ -103,9 +108,14 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
                 <span className="providerBadge">{selectedResult.provider}</span>
                 <h2>{selectedResult.title}</h2>
                 {selectedResult.subtitle && <p className="subtitle">{selectedResult.subtitle}</p>}
-                <button className="primaryButton" onClick={() => void onAdd(selectedResult)} type="button">
-                  Add and Monitor
-                </button>
+                <div className="modalActions">
+                  <button className="primaryButton" onClick={() => void onModalAdd(selectedResult)} type="button">
+                    Add and Monitor
+                  </button>
+                  <button className="secondaryButton" onClick={() => setSelectedResult(undefined)} type="button">
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
 
