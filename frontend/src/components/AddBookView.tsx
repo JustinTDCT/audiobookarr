@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { addBook, searchMetadata, type LibraryState, type MetadataSearchResult } from '../api/client';
 
 type PageSize = 25 | 50 | 'all';
+type SortOrder = 'title' | 'author' | 'source';
 
 type AddBookViewProps = {
   library?: LibraryState;
@@ -16,10 +17,12 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
   const [selectedResult, setSelectedResult] = useState<MetadataSearchResult>();
   const [pageSize, setPageSize] = useState<PageSize>(25);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(results.length / pageSize));
+  const [sortOrder, setSortOrder] = useState<SortOrder>('title');
+  const sortedResults = useMemo(() => sortResults(results, sortOrder), [results, sortOrder]);
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedResults.length / pageSize));
   const visibleResults = pageSize === 'all'
-    ? results
-    : results.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    ? sortedResults
+    : sortedResults.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   async function onSearch() {
     setIsSearching(true);
@@ -75,23 +78,39 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
       {results.length > 0 && (
         <div className="resultsToolbar">
           <span>
-            Showing {pageSize === 'all' ? results.length : visibleResults.length} of {results.length} results
+            Showing {pageSize === 'all' ? sortedResults.length : visibleResults.length} of {sortedResults.length} results
           </span>
-          <label>
-            Results per page
-            <select
-              onChange={(event) => {
-                const value = event.target.value;
-                setPageSize(value === 'all' ? 'all' : Number(value) as 25 | 50);
-                setCurrentPage(1);
-              }}
-              value={pageSize}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value="all">All</option>
-            </select>
-          </label>
+          <div className="toolbarControls">
+            <label>
+              Sort by
+              <select
+                onChange={(event) => {
+                  setSortOrder(event.target.value as SortOrder);
+                  setCurrentPage(1);
+                }}
+                value={sortOrder}
+              >
+                <option value="title">Title</option>
+                <option value="author">Author</option>
+                <option value="source">Source</option>
+              </select>
+            </label>
+            <label>
+              Results per page
+              <select
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setPageSize(value === 'all' ? 'all' : Number(value) as 25 | 50);
+                  setCurrentPage(1);
+                }}
+                value={pageSize}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+          </div>
         </div>
       )}
 
@@ -110,8 +129,17 @@ export function AddBookView({ library, onBookAdded }: AddBookViewProps) {
                 <span className="providerBadge">{result.provider}</span>
                 {existingBook && <span className="statusBadge monitored inlineStatus">In Library</span>}
                 <h2>{result.title}</h2>
-                <p>{result.authors.map((author) => author.name).join(', ') || 'Unknown author'}</p>
-                <p>{result.editions[0]?.narrators?.join(', ') || 'Narrator unknown'}</p>
+                {result.subtitle && <p className="resultSubtitle">{result.subtitle}</p>}
+                <dl className="resultMetadata">
+                  <dt>Author</dt>
+                  <dd>{formatAuthors(result)}</dd>
+                  <dt>Narrator</dt>
+                  <dd>{formatNarrators(result)}</dd>
+                  <dt>Edition</dt>
+                  <dd>{formatEditionSummary(result)}</dd>
+                  <dt>ID</dt>
+                  <dd>{formatIdentifiers(result)}</dd>
+                </dl>
                 <button
                   className="secondaryButton"
                   disabled={Boolean(existingBook)}
@@ -257,4 +285,61 @@ function findExistingBook(result: MetadataSearchResult, library?: LibraryState) 
 
 function normalize(value?: string) {
   return (value ?? '').trim().toLowerCase();
+}
+
+function sortResults(results: MetadataSearchResult[], sortOrder: SortOrder) {
+  return [...results].sort((first, second) => {
+    if (sortOrder === 'author') {
+      return compareText(formatAuthors(first), formatAuthors(second)) ||
+        compareText(first.title, second.title) ||
+        compareText(first.provider, second.provider);
+    }
+
+    if (sortOrder === 'source') {
+      return compareText(first.provider, second.provider) ||
+        compareText(first.title, second.title) ||
+        compareText(formatAuthors(first), formatAuthors(second));
+    }
+
+    return compareText(first.title, second.title) ||
+      compareText(formatAuthors(first), formatAuthors(second)) ||
+      compareText(first.provider, second.provider);
+  });
+}
+
+function compareText(first?: string, second?: string) {
+  return normalize(first).localeCompare(normalize(second), undefined, {
+    numeric: true,
+    sensitivity: 'base'
+  });
+}
+
+function formatAuthors(result: MetadataSearchResult) {
+  return result.authors.map((author) => author.name).join(', ') || 'Unknown author';
+}
+
+function formatNarrators(result: MetadataSearchResult) {
+  return result.editions[0]?.narrators?.join(', ') || 'Narrator unknown';
+}
+
+function formatEditionSummary(result: MetadataSearchResult) {
+  const edition = result.editions[0];
+  const parts = [
+    result.series.map((series) => `${series.name}${series.sequence ? ` #${series.sequence}` : ''}`).join(', '),
+    edition?.publisher,
+    edition?.publishedDate,
+    edition?.language
+  ].filter(Boolean);
+
+  return parts.join(' | ') || 'Edition details unavailable';
+}
+
+function formatIdentifiers(result: MetadataSearchResult) {
+  const edition = result.editions[0];
+  const parts = [
+    edition?.asin ? `ASIN ${edition.asin}` : undefined,
+    edition?.isbn ? `ISBN ${edition.isbn}` : undefined
+  ].filter(Boolean);
+
+  return parts.join(' | ') || result.providerId;
 }

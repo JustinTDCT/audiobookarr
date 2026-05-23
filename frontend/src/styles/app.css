@@ -239,6 +239,12 @@ p {
   gap: 10px;
 }
 
+.toolbarControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .resultsToolbar select {
   background: #0f172a;
   border: 1px solid #334155;
@@ -256,6 +262,7 @@ p {
   display: grid;
   gap: 14px;
   grid-template-columns: 92px 1fr;
+  min-height: 230px;
   transition: border-color 140ms ease, transform 140ms ease;
 }
 
@@ -313,6 +320,32 @@ p {
 
 .inlineStatus {
   margin-left: 8px;
+}
+
+.resultSubtitle {
+  color: #cbd5e1;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.resultMetadata {
+  display: grid;
+  gap: 5px 10px;
+  grid-template-columns: 72px 1fr;
+  margin: 0 0 14px;
+}
+
+.resultMetadata dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.resultMetadata dd {
+  color: #aab7c9;
+  font-size: 13px;
+  margin: 0;
 }
 
 .settingsGrid {
