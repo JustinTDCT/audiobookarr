@@ -24,8 +24,8 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
             return [];
         }
 
-        var responseGroups = "contributors,product_attrs,product_desc,product_details,product_extended_attrs,rating,series";
-        var url = $"1.0/catalog/products?keywords={Uri.EscapeDataString(keywords)}&num_results={request.Limit}&response_groups={responseGroups}&image_sizes=500";
+        var responseGroups = "contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series";
+        var url = $"1.0/catalog/products?keywords={Uri.EscapeDataString(keywords)}&num_results={request.Limit}&response_groups={responseGroups}&image_sizes=1215,900,500,558,252";
         var response = await httpClient.GetFromJsonAsync<AudibleSearchResponse>(url, cancellationToken);
 
         return response?.Products?
@@ -69,7 +69,7 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
             [edition],
             series,
             product.PublisherSummary,
-            product.ImageUrl,
+            SelectCoverUrl(product.ProductImages),
             product.Categories?.Select(category => category.Name).Where(name => !string.IsNullOrWhiteSpace(name)).Cast<string>().Take(5).ToList() ?? [],
             95,
             [
@@ -80,6 +80,24 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
                 new("asin", Name),
                 new("coverUrl", Name)
             ]);
+    }
+
+    private static string? SelectCoverUrl(IReadOnlyDictionary<string, string>? images)
+    {
+        if (images is null || images.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var preferredSize in new[] { "500", "558", "900", "1215", "252" })
+        {
+            if (images.TryGetValue(preferredSize, out var url) && !string.IsNullOrWhiteSpace(url))
+            {
+                return url;
+            }
+        }
+
+        return images.Values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
     }
 
     private sealed record AudibleSearchResponse(
@@ -96,7 +114,7 @@ public sealed class AudibleMetadataProvider(HttpClient httpClient) : IMetadataPr
         [property: JsonPropertyName("language")] string? Language,
         [property: JsonPropertyName("runtime_length_min")] int? RuntimeLengthMinutes,
         [property: JsonPropertyName("publisher_summary")] string? PublisherSummary,
-        [property: JsonPropertyName("image_url")] string? ImageUrl,
+        [property: JsonPropertyName("product_images")] Dictionary<string, string>? ProductImages,
         [property: JsonPropertyName("series")] List<AudibleSeries>? Series,
         [property: JsonPropertyName("category_ladders")] List<AudibleCategory>? Categories);
 

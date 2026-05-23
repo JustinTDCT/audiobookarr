@@ -202,9 +202,16 @@ p {
 }
 
 .resultCard {
+  cursor: pointer;
   display: grid;
   gap: 14px;
   grid-template-columns: 92px 1fr;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+
+.resultCard:hover {
+  border-color: #38bdf8;
+  transform: translateY(-1px);
 }
 
 .resultCard img,
@@ -214,6 +221,10 @@ p {
   border-radius: 8px;
   object-fit: cover;
   width: 92px;
+}
+
+.coverPlaceholder.large {
+  width: 180px;
 }
 
 .providerBadge {
@@ -273,4 +284,83 @@ p {
   border-radius: 8px;
   margin-bottom: 16px;
   padding: 12px;
+}
+
+.modalBackdrop {
+  align-items: center;
+  background: rgba(2, 6, 23, 0.78);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  padding: 28px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 10;
+}
+
+.detailModal {
+  background: #172033;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  max-height: 88vh;
+  max-width: 920px;
+  overflow: auto;
+  padding: 24px;
+  position: relative;
+  width: min(920px, 100%);
+}
+
+.modalClose {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 8px 10px;
+  position: absolute;
+  right: 18px;
+  top: 18px;
+}
+
+.modalHero {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 180px 1fr;
+  margin-bottom: 24px;
+  padding-right: 90px;
+}
+
+.modalHero img {
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  object-fit: cover;
+  width: 180px;
+}
+
+.modalHero h2 {
+  font-size: 30px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 16px;
+}
+
+.modalDetails {
+  background: #111827;
+  border: 1px solid #293548;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.descriptionBlock {
+  margin-top: 22px;
+}
+
+.descriptionBlock p {
+  color: #cbd5e1;
+  line-height: 1.55;
 }
